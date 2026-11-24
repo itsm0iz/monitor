@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with the C# compiler that comes with Windows
+        shell: cmd
+        run: build.bat nopause
+
+      - name: Run the logic tests
+        shell: cmd
+        run: tests\run-tests.bat nopause
+
+      - name: Start the app and check it keeps running
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath bin\StudyMonitor.exe -ArgumentList '/tray' -PassThru
+          Start-Sleep -Seconds 20
+          $p.Refresh()
+          if ($p.HasExited) { Get-Content bin\data\errors.log -ErrorAction SilentlyContinue; throw "StudyMonitor.exe exited early (code $($p.ExitCode))" }
+          foreach ($f in 'state.ini', 'settings.ini', 'messages.txt') {
+            if (-not (Test-Path "bin\data\$f")) { throw "bin\data\$f was not created" }
+          }
+          "Memory after 20 s in the tray: {0:N1} MB working set, {1:N1} MB private" -f ($p.WorkingSet64 / 1MB), ($p.PrivateMemorySize64 / 1MB)
+          if (Test-Path bin\data\errors.log) { Get-Content bin\data\errors.log; throw "errors.log was written" }
+          Stop-Process -Id $p.Id
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StudyMonitor
+          path: bin/StudyMonitor.exe
