@@ -42,23 +42,37 @@ namespace StudyMonitor
             }
         }
 
-        // data\ next to the exe, or %APPDATA%\StudyMonitor if that folder can't be written to.
+        // Your files live in %APPDATA%\StudyMonitor, so the exe can be moved or replaced without losing anything.
+        // Portable mode: if there's a "data" folder next to the exe (earlier versions made one), that's used instead.
         static string FindDataDir()
         {
-            string dir = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "data");
+            string portable = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "data");
+            if (Directory.Exists(portable) && CanWrite(portable)) return portable;
             try
             {
+                string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StudyMonitor");
                 Directory.CreateDirectory(dir);
-                string probe = Path.Combine(dir, ".write-test");
-                File.WriteAllText(probe, "ok");
-                File.Delete(probe);
                 return dir;
             }
             catch
             {
-                dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StudyMonitor");
-                Directory.CreateDirectory(dir);
-                return dir;
+                Directory.CreateDirectory(portable);
+                return portable;
+            }
+        }
+
+        static bool CanWrite(string dir)
+        {
+            try
+            {
+                string probe = Path.Combine(dir, ".write-test");
+                File.WriteAllText(probe, "ok");
+                File.Delete(probe);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 

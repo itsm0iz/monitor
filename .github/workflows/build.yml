@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -21,18 +24,42 @@ jobs:
       - name: Start the app and check it keeps running
         shell: pwsh
         run: |
+          $data = Join-Path $env:APPDATA 'StudyMonitor'
           $p = Start-Process -FilePath bin\StudyMonitor.exe -ArgumentList '/tray' -PassThru
           Start-Sleep -Seconds 20
           $p.Refresh()
-          if ($p.HasExited) { Get-Content bin\data\errors.log -ErrorAction SilentlyContinue; throw "StudyMonitor.exe exited early (code $($p.ExitCode))" }
+          if ($p.HasExited) { Get-Content "$data\errors.log" -ErrorAction SilentlyContinue; throw "StudyMonitor.exe exited early (code $($p.ExitCode))" }
           foreach ($f in 'state.ini', 'settings.ini', 'messages.txt') {
-            if (-not (Test-Path "bin\data\$f")) { throw "bin\data\$f was not created" }
+            if (-not (Test-Path "$data\$f")) { throw "$data\$f was not created" }
           }
+          if (Test-Path bin\data) { throw "it made a data folder next to the exe instead of using $data" }
           "Memory after 20 s in the tray: {0:N1} MB working set, {1:N1} MB private" -f ($p.WorkingSet64 / 1MB), ($p.PrivateMemorySize64 / 1MB)
-          if (Test-Path bin\data\errors.log) { Get-Content bin\data\errors.log; throw "errors.log was written" }
+          if (Test-Path "$data\errors.log") { Get-Content "$data\errors.log"; throw "errors.log was written" }
           Stop-Process -Id $p.Id
 
       - uses: actions/upload-artifact@v4
         with:
           name: StudyMonitor
           path: bin/StudyMonitor.exe
+
+  release:
+    # Every change merged into main is published as a release, with the exe that was just built and tested.
+    needs: windows
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: StudyMonitor
+          path: dist
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v1.0.${{ github.run_number }}"
+          gh release create "$tag" dist/StudyMonitor.exe --target "${{ github.sha }}" --title "Study Monitor $tag" --notes-file .github/release-notes.md
