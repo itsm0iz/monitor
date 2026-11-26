@@ -11,15 +11,22 @@ A tiny Windows tray app that times your study sessions out loud and calls you ou
 
 ## Get it running
 
-1. Download this repo (**Code → Download ZIP**, then unzip) or `git clone` it.
-2. Double-click **`build.bat`**. It uses the C# compiler that's already part of Windows, so there's nothing to install. If Windows warns about the file, click **More info → Run anyway**.
-3. Double-click **`bin\StudyMonitor.exe`**.
+1. Under **Releases** on the right of this page, open the latest one and download **`StudyMonitor.exe`**.
+2. Put it somewhere you'll keep it, like your Documents folder. It starts with Windows from wherever it is.
+3. First time only: right-click it → **Properties** → tick **Unblock** → **OK**. Without this, Windows asks "are you sure?" whenever it starts.
+4. Double-click it.
 
-From then on it starts with Windows and lives in the tray (you can turn that off in Settings). The X button only hides the window. To really exit, right-click the tray icon → **Quit**.
+Needs Windows 10 or 11; nothing to install. From then on it starts with Windows and lives in the tray (you can turn that off in Settings). The X button only hides the window. To really exit, right-click the tray icon → **Quit**.
 
 The tray icon is **green** while you study, **gray** when you're not, and **gold** once today's goal is done.
 
-If you'd rather not build it yourself, every push builds the exe on GitHub: **Actions → latest run → Artifacts → StudyMonitor**. A downloaded exe may get a SmartScreen warning; building it yourself avoids that.
+**Updating:** quit it from the tray, replace the exe with the one from the newest release, and start it again. Your history and settings stay where they are.
+
+### Or build it yourself
+
+1. Download this repo (**Code → Download ZIP**, then unzip) or `git clone` it.
+2. Double-click **`build.bat`**. It uses the C# compiler that's already part of Windows, so there's nothing to install. If Windows warns about the file, click **More info → Run anyway**.
+3. Double-click **`bin\StudyMonitor.exe`**.
 
 ## How it decides what to say
 
@@ -46,7 +53,7 @@ Nags only happen while you're at the laptop (input in the last minute), never ri
 
 ## Your files
 
-Everything is in `bin\data\` (or `%APPDATA%\StudyMonitor` if that folder isn't writable):
+Everything is in `%APPDATA%\StudyMonitor` (the **Data folder** button opens it), so you can move or replace the exe without losing anything. Want it portable instead? Make a folder called `data` next to the exe and it will use that.
 
 | File | What's in it |
 |---|---|
@@ -72,6 +79,7 @@ Daily goal · your study day (start and bedtime, used for pace) · when the new 
 
 ## Troubleshooting
 
+- **"Windows protected your PC":** Windows says this about any new app that isn't signed. Click **More info → Run anyway**, or do the **Unblock** step above before running it.
 - **No female voice:** Settings → Voice lists the voices this app can use. Zira is built into English Windows. Voices you add under Windows Settings → Time & language → Speech are for newer apps and usually don't show up here.
 - **Hotkey doesn't work:** another app already uses it. The window says so; pick a different one in Settings.
 - **Silent:** it talks through your normal audio output, so muted laptop = silent. The last thing it said is always shown in the window.
@@ -82,3 +90,4 @@ Daily goal · your study day (start and bedtime, used for pace) · when the new 
 - `src\Engine.cs` makes all the decisions. `History.cs` handles sessions, streaks and averages. `Messages.cs` picks lines. `MainForm.cs` and `SettingsForm.cs` are the windows. `Speech.cs` talks to the built-in Windows voice.
 - The code sticks to C# 5 so the compiler built into Windows can build it. Run `build.bat` again after a change (quit the app first).
 - `tests\run-tests.bat` runs the logic tests: hours of simulated use with a fake clock, no audio.
+- Every change merged into `main` is built on Windows, tested, started once as a smoke test, and published as a new release with the exe attached (`.github/workflows/build.yml`).
